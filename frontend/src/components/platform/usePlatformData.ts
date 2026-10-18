@@ -93,7 +93,7 @@ export interface VenueData {
   fills: VenueFill[];
   governance: GovernanceEntry[];
   /**
-   * "supabase" once the indexer writes prices; "chain" while mids are read directly from each market's
+   * "supabase" once the indexer writes prices; "chain" while mids and vault TVL are read directly from each market's
    * Chainlink feed and vault TVL, inventory and fills are not indexed yet.
    */
   source: "supabase" | "chain";
@@ -120,6 +120,33 @@ let chainClient: PublicClient | null = null;
 function getChainClient(): PublicClient {
   chainClient ??= createPublicClient({ chain: robinhoodChain, transport: http(platformEnv.chainRpc || undefined) });
   return chainClient;
+}
+
+const VAULT_ABI = [
+  { type: "function", name: "totalValue", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "uint256" }] },
+  { type: "function", name: "inventoryRatioBps", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "uint256" }] },
+] as const;
+
+/**
+ * Reads TVL (USDG, 6 decimals) and the token-side inventory share straight from each vault, for markets the
+ * indexer has not snapshotted. Both calls revert while a market is halted; those vaults are simply left out.
+ */
+async function readVaultStates(vaults: Record<string, `0x${string}`>): Promise<Record<string, { tvl: number; inventoryRatioBps: number }>> {
+  const client = getChainClient();
+  const entries = await Promise.all(
+    Object.entries(vaults).map(async ([marketId, vault]) => {
+      try {
+        const [tvl, inv] = await Promise.all([
+          client.readContract({ address: vault, abi: VAULT_ABI, functionName: "totalValue" }),
+          client.readContract({ address: vault, abi: VAULT_ABI, functionName: "inventoryRatioBps" }),
+        ]);
+        return [marketId, { tvl: Number(tvl) / 1e6, inventoryRatioBps: Number(inv) }] as const;
+      } catch {
+        return null;
+      }
+    })
+  );
+  return Object.fromEntries(entries.filter((e): e is NonNullable<typeof e> => e !== null));
 }
 
 /** Reads each feed's latest answer as a USDG price per whole token (USDG is treated as USD). Unreadable feeds are left out. */
@@ -163,7 +190,13 @@ export function useVenue(): AsyncState<VenueData> {
     const unpriced = Object.fromEntries(
       rows.filter((m) => !prices[m.id] && m.feed_address).map((m) => [m.id, m.feed_address as `0x${string}`])
     );
-    const chainMids = Object.keys(unpriced).length > 0 ? await readChainlinkMids(unpriced) : {};
+    const unsnapped = Object.fromEntries(
+      rows.filter((m) => !snapshots[m.id] && m.vault_address).map((m) => [m.id, m.vault_address as `0x${string}`])
+    );
+    const [chainMids, chainVaults] = await Promise.all([
+      Object.keys(unpriced).length > 0 ? readChainlinkMids(unpriced) : Promise.resolve({} as Record<string, number>),
+      Object.keys(unsnapped).length > 0 ? readVaultStates(unsnapped) : Promise.resolve({} as Record<string, { tvl: number; inventoryRatioBps: number }>),
+    ]);
 
     const markets: VaultMarket[] = rows.flatMap((m) => {
       const mid = prices[m.id] ? Number(prices[m.id].price) : chainMids[m.id];
@@ -176,8 +209,8 @@ export function useVenue(): AsyncState<VenueData> {
           name: m.name,
           tier,
           mid,
-          inventoryRatioBps: snap?.inventory_ratio_bps ?? 5_000,
-          tvl: Number(snap?.tvl ?? 0),
+          inventoryRatioBps: snap?.inventory_ratio_bps ?? chainVaults[m.id]?.inventoryRatioBps ?? 5_000,
+          tvl: snap ? Number(snap.tvl) : (chainVaults[m.id]?.tvl ?? 0),
           volume24h: Number(snap?.volume_24h ?? 0),
           tokenAddress: m.token_address as `0x${string}`,
           tokenDecimals: m.token_decimals,

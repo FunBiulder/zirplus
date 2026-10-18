@@ -126,7 +126,7 @@ export default function OverviewPage() {
           <div>
             <h2 id="markets-title" className="font-display text-[26px] font-light text-zp-fg">Markets</h2>
             <p className="mt-1 text-[13px] text-zp-fg-3">
-              {venue.data?.source === "supabase" ? "From the indexer read model" : "Live Chainlink mids; vault data once the indexer is connected"} ·{" "}
+              {venue.data?.source === "supabase" ? "From the indexer read model" : "Live from Chainlink and the vaults; fills once the indexer is connected"} ·{" "}
               half-spread shown for a buy right now
             </p>
           </div>
