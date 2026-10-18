@@ -21,7 +21,7 @@ const QA = [
   },
   {
     q: "Who decides the price?",
-    a: "A formula over public state: the guarded mid, the tier spread times the session multiplier, the inventory skew and an itemised fee. Nobody at Zirplus can change a quote or a fill, and parameters only move through a timelock.",
+    a: "A formula over public state: the guarded mid, the tier spread times the session multiplier, the inventory skew and an itemised fee. Nobody at Zirplus can change a quote or a fill once it is on-chain. Protocol parameters move through a 48-hour timelock; oracle settings can still be changed directly by the owner, which the docs explain.",
   },
   {
     q: "Do I need to be verified?",

@@ -176,7 +176,7 @@ export default function DocsPage() {
                   <li>Prices come from a published formula, not from a pool curve, and every term is emitted on-chain with each fill.</li>
                   <li>No fill from either venue can clear outside the market&apos;s oracle band.</li>
                   <li>Withdrawals from a vault always work: halted, paused or retired.</li>
-                  <li>The router, vaults, factory and RFQ contract have no owner, no proxy and no sweep function.</li>
+                  <li>The router, vaults and RFQ contract have no owner, no proxy and no sweep function; the factory&apos;s owner can only open markets.</li>
                 </ul>
                 <p className="text-[14px] text-zp-fg-3">
                   Stock Tokens track a share&apos;s price but are a claim on their issuer, not shares registered to you. Zirplus is pre-audit
@@ -338,16 +338,25 @@ fee       = ${FEES.swapFeeBps} bps of the USDG side`}</Code>
               <Section id="governance" kicker="09 · Governance" title="Governance and security">
                 <ul className="list-disc space-y-2 pl-5 marker:text-zp-fg-4">
                   <li>
-                    Every parameter lives in <Pill>ParamController</Pill> behind a 48-hour timelock: changes are scheduled publicly and can
-                    only execute after the delay.
+                    Settings in <Pill>ParamController</Pill> (tiers, markets, sessions, fees, eligibility, issuers, guardian) sit behind a
+                    48-hour timelock: changes are scheduled publicly and can only execute after the delay.
+                  </li>
+                  <li>
+                    <strong className="font-medium text-zp-fg">Not timelocked yet:</strong> the owner can change a market&apos;s oracle
+                    configuration (including its price feed), pause or resume a market, open a new market, unpause swaps and transfer
+                    ownership immediately.
                   </li>
                   <li>The guardian&apos;s only power is pausing swaps. Deposits, withdrawals and RFQ cancellation cannot be paused by anyone.</li>
-                  <li>No role can move LP or trader funds, block withdrawals or make a fill clear outside the oracle band.</li>
+                  <li>
+                    No role can withdraw LP or trader funds or block withdrawals. Because the oracle configuration is not timelocked, though,
+                    a compromised owner key could re-point a feed and mis-price fills, so LP funds rely on that key for now.
+                  </li>
                 </ul>
                 <p>
                   <strong className="font-medium text-zp-fg">Status: pre-audit.</strong> No external audit has been completed and no bug
-                  bounty is live yet. At launch the deployer key holds the owner, guardian and issuer roles; ownership moves to a multisig as
-                  the venue grows. Chainlink has not published an L2 sequencer uptime feed for Robinhood Chain yet, so that guard switches on
+                  bounty is live yet. At launch one deployer key holds the owner, guardian and issuer roles, and also signs self-verifications on
+                  the web server; ownership moves to a multisig, and attestation to a dedicated issuer key, as the venue grows. Keep deposits
+                  small until then. Chainlink has not published an L2 sequencer uptime feed for Robinhood Chain yet, so that guard switches on
                   once it exists.
                 </p>
                 <p>

@@ -9,7 +9,7 @@ Every market has an **anchor vault** that quotes both sides around the guarded C
 - **Priced from the oracle, not from a pool curve.** The price is the Chainlink mid, plus a published half-spread, plus a small inventory skew, plus a 2 bps fee. Every term is emitted on-chain with each fill.
 - **The trading regime follows the stock market.** Spreads widen ×1.5 in extended hours and ×3 when the market is closed, and the largest allowed trade shrinks with them.
 - **LP funds can always leave.** Withdrawals are pro-rata and in kind, need no oracle, and work while a market is halted, paused or retired.
-- **There's no admin key on the money path.** `SwapRouter`, `AnchorVault`, `VaultFactory` and `RfqSettlement` have no owner, no proxy and no sweep function. Parameters change only through a timelock.
+- **No proxies, no sweep functions.** `SwapRouter`, `AnchorVault` and `RfqSettlement` have no owner, no proxy and no sweep function; `VaultFactory`'s owner can only open markets. Protocol parameters change through a 48h timelock, but oracle settings are not timelocked yet, so LP funds still rely on the owner key (see [Security](architecture/security.md)).
 
 ## Read next
 

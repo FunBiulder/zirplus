@@ -10,7 +10,7 @@
 | `RfqSettlement` | Settles EIP-712 maker quotes atomically, checked against the oracle band. Makers cancel by nonce. |
 | `OracleRouter` | Chainlink feeds behind session, staleness, move-cap, corporate-action and sequencer guards. |
 | `EligibilityRegistry` and `NativeAttestationAdapter` | Role checks (`TRADER`, `LP`, `MAKER`, `RELAYER`) against issuer-signed attestations. |
-| `ParamController` | Every tunable parameter, behind a timelock. The guardian can only pause swaps. |
+| `ParamController` | Protocol parameters, behind a timelock. The guardian can only pause swaps. Oracle settings live in `OracleRouter` and are not timelocked. |
 | `FeeCollector` | Receives swap fees, RFQ fees and the protocol's share of spread. |
 
 ## Price formula

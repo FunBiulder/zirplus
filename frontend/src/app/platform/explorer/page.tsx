@@ -200,7 +200,7 @@ export default function ExplorerPage() {
       <section className="mt-14" aria-labelledby="params-title">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <h2 id="params-title" className="font-display text-[26px] font-light text-zp-fg">Parameters in force</h2>
-          <span className="text-[13px] text-zp-fg-3">changes are timelocked, with the rationale published</span>
+          <span className="text-[13px] text-zp-fg-3">parameter changes are timelocked, with the rationale published</span>
         </div>
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           {([1, 2, 3] as const).map((t) => (

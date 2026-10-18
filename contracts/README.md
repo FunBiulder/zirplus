@@ -15,7 +15,7 @@ src/
   OracleRouter.sol            Chainlink feeds and streams behind session, staleness, move-cap and sequencer guards
   EligibilityRegistry.sol     role checks delegated to a policy adapter that can be swapped
   adapters/NativeAttestationAdapter.sol   standalone attestation store following EAS semantics
-  ParamController.sol         all tunable parameters sit behind a timelock; the guardian's only power is pausing swaps
+  ParamController.sol         protocol parameters behind a timelock; the guardian's only power is pausing swaps
   FeeCollector.sol            collects the itemised swap fees, the RFQ fees and the protocol's share of the spread
   libraries/                  Types (quotes, breakdowns, roles and constants)
   interfaces/                 interfaces for the protocol and for external systems (Chainlink, ERC-8056)
@@ -60,7 +60,7 @@ forge script script/Deploy.s.sol --rpc-url robinhood                            
 forge script script/Deploy.s.sol --rpc-url robinhood --broadcast --slow --verify --verifier blockscout --verifier-url "$ROBINHOOD_BLOCKSCOUT_API"      # real deploy
 ```
 
-The script checks that USDG, the token and the feed have code on-chain, deploys the eight core contracts, applies the launch parameters (Tier A: 10 bps half-spread, 75 bps band, 50,000 USDG clip; session multipliers of x1.5 extended and x3 closed; 2 bps fees and a 10% spread share), opens the NVDA market and finishes bootstrap, after which every parameter change waits out the timelock.
+The script checks that USDG, the token and the feed have code on-chain, deploys the eight core contracts, applies the launch parameters (Tier A: 10 bps half-spread, 75 bps band, 50,000 USDG clip; session multipliers of x1.5 extended and x3 closed; 2 bps fees and a 10% spread share), opens the NVDA market and finishes bootstrap, after which every `ParamController` change waits out the timelock (oracle configuration does not; see Governance model).
 
 `--verify` covers the contracts the script deploys itself. The factory deploys the `AnchorVault`, so forge cannot recover its constructor arguments; verify it by hand with the addresses from `deployments/4663.json`. The vault takes its name from the token's own symbol, `NVDA`:
 
@@ -77,8 +77,9 @@ The full runbook, including what to do right after deploying, is in [`frontend/d
 ## Governance model
 
 - `ParamController` begins in bootstrap mode, where the owner calls setters directly. Calling `finishBootstrap()` cannot be undone and sends every subsequent change through `schedule` / `execute` with the configured delay.
+- Not everything is timelocked. The owner calls these directly, with no delay: `OracleRouter.configureFeed` (which can replace a live market's price feed), `setSequencerFeed`, `setSchedule`, `pause` and `resume`; `VaultFactory.createMarket`; and on `ParamController`, unpausing swaps, cancelling scheduled operations and `transferOwnership`. `configureFeed` overwrites a live market's feed, so a compromised owner key could mis-price fills and drain vault inventory; timelocking the oracle configuration (or holding ownership in a multisig) is the fix.
 - Pausing swaps is the guardian's only power. Deposits, withdrawals and RFQ cancellation cannot be paused by anyone.
-- There is no proxy and no admin on `SwapRouter`, `AnchorVault`, `VaultFactory` or `RfqSettlement`. Upgrades arrive as fresh deployments, and LPs choose whether to migrate.
+- There is no proxy and no admin on `SwapRouter`, `AnchorVault` or `RfqSettlement`; `VaultFactory`'s only owner powers are opening markets and its one-time router wiring. Upgrades arrive as fresh deployments, and LPs choose whether to migrate.
 
 ## Key invariants
 

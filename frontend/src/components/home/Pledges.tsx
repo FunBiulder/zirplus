@@ -6,7 +6,7 @@ const PLEDGES = [
   { title: "Best verifiable price wins", body: "The router compares the vault quote with any maker quote on-chain and settles the better one.", check: "Call previewExactIn with the same inputs and compare." },
   { title: "No custody, anywhere", body: "Settlement is atomic, and vault inventory belongs to LPs. Between trades the venue holds nothing.", check: "Read SwapRouter: it has no owner and no sweep function." },
   { title: "Exits are unconditional", body: "Withdrawals are pro-rata and in kind, and they work halted, paused, retired or with an expired attestation.", check: "See the withdrawal-in-every-state tests." },
-  { title: "Changes are timelocked", body: "After bootstrap, every parameter change is scheduled, waits out the delay and only then executes.", check: "Follow ParamController's schedule and execute events." },
+  { title: "Parameters are timelocked", body: "Spreads, bands, caps, fees and eligibility changes are scheduled, wait out 48 hours and only then execute. Oracle settings are not timelocked yet.", check: "Follow ParamController's schedule and execute events." },
   { title: "The guardian can only pause swaps", body: "Deposits, withdrawals and RFQ cancellations sit outside anyone's pause button.", check: "Read ParamController: the guardian role can call one thing, the swap pause." },
   { title: "Open source, no proxies", body: "The router, vaults, factory and RFQ settlement have no upgrade path. New versions are new deployments.", check: "Verify the bytecode against this repository." },
 ];

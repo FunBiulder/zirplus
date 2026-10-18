@@ -50,7 +50,7 @@ forge script script/Deploy.s.sol --rpc-url robinhood                            
 forge script script/Deploy.s.sol --rpc-url robinhood --broadcast --slow --verify --verifier blockscout --verifier-url "$ROBINHOOD_BLOCKSCOUT_API"  # 2. real deploy
 ```
 
-The script refuses any chain other than 4663, and it checks that USDG, the token and the feed all have code. Bootstrap finishes at the end of the deploy, so from then on every parameter change waits out the 48h timelock (`ParamController.schedule`, then `execute`). Pausing swaps and pausing or resuming a market stay immediate.
+The script refuses any chain other than 4663, and it checks that USDG, the token and the feed all have code. Bootstrap finishes at the end of the deploy, so from then on every `ParamController` change waits out the 48h timelock (`ParamController.schedule`, then `execute`). Oracle configuration (`configureFeed`, `setSequencerFeed`, `setSchedule`), pausing and resuming a market, opening markets, unpausing swaps and ownership transfer stay immediate owner calls.
 
 ### Verifying the vault
 
