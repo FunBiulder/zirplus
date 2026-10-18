@@ -152,6 +152,33 @@ create trigger profiles_link after insert or update of wallet_address on public.
   for each row execute function public.profiles_link_attestations();
 
 -- ---------------------------------------------------------------------------
+-- Eligibility declarations (private; the audit trail behind self-certified attestations)
+-- ---------------------------------------------------------------------------
+
+-- One row per signed declaration: what the user declared, the network country the request came from, the
+-- exact message and signature, and the attestation it produced. Written only by POST /api/platform/attest
+-- with the service role; nobody reads it through the anon or authenticated roles.
+create table if not exists public.eligibility_declarations (
+  id               uuid primary key default gen_random_uuid(),
+  profile_id       text references public.profiles (id) on delete set null,
+  wallet_address   text not null,
+  declared_country text not null check (char_length(declared_country) = 2),
+  network_country  text,                         -- from the hosting edge (x-vercel-ip-country / cf-ipcountry)
+  version          text not null,
+  message          text not null,
+  signature        text not null,
+  attest_tx        text,
+  expires_at       timestamptz,
+  user_agent       text,
+  created_at       timestamptz not null default now()
+);
+
+create index if not exists eligibility_declarations_wallet_idx on public.eligibility_declarations (lower(wallet_address), created_at desc);
+
+alter table public.eligibility_declarations enable row level security;
+revoke all on public.eligibility_declarations from anon, authenticated;
+
+-- ---------------------------------------------------------------------------
 -- Venue read model (public)
 -- ---------------------------------------------------------------------------
 

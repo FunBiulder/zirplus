@@ -6,6 +6,7 @@ import { ArrowDownUp, Info } from "lucide-react";
 import { useSession } from "@/components/platform/PlatformProviders";
 import { useNow, useVenue } from "@/components/platform/usePlatformData";
 import { useOnchainSwap } from "@/components/platform/useOnchainSwap";
+import { SelfCertify } from "@/components/platform/SelfCertify";
 import { platformEnv } from "@/lib/platform/env";
 import { formatUnits } from "viem";
 import { Badge, Button, EmptyState, LeaderRow, Notice, PageHead, Segmented, Select, Skeleton, sessionTone } from "@/components/platform/ui";
@@ -30,6 +31,44 @@ function TokenChip({ symbol }: { symbol: string }) {
   );
 }
 
+function RoutePanel({
+  swap,
+  outSymbol,
+  outDigits,
+  slippageBps,
+}: {
+  swap: ReturnType<typeof useOnchainSwap>;
+  outSymbol: string;
+  outDigits: number;
+  slippageBps: number;
+}) {
+  const fmt = (v: bigint) => fmtMoney(Number(formatUnits(v, swap.outDecimals)), "", outDigits);
+  const minOut = (swap.previewOut! * BigInt(10_000 - slippageBps)) / BigInt(10_000);
+  const rows = [
+    { id: "zirplus" as const, name: "Zirplus", quote: swap.zirplus, note: swap.zirplus ? swap.zirplus.detail : (swap.zirplusError ?? "no quote") },
+    { id: "uniswap" as const, name: "Uniswap V3", quote: swap.uniswap, note: swap.uniswap ? swap.uniswap.detail : "no pool can fill this size" },
+  ];
+  return (
+    <div className="mt-4 rounded-[18px] border border-zp-line p-4">
+      <p className="text-[13px] text-zp-fg-2">{swap.routeReason}</p>
+      <ul className="mt-3 space-y-1.5">
+        {rows.map((r) => (
+          <li key={r.id} className="num flex items-center justify-between gap-3 text-[13px]">
+            <span className={r.id === swap.route ? "text-zp-fg" : "text-zp-fg-3"}>
+              {r.id === swap.route ? "● " : "○ "}
+              {r.name} <span className="text-zp-fg-4">· {r.note}</span>
+            </span>
+            <span className={r.id === swap.route ? "text-zp-fg" : "text-zp-fg-3"}>{r.quote ? `${fmt(r.quote.amountOut)} ${outSymbol}` : "n/a"}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="num mt-3 border-t border-zp-line pt-3 text-[12.5px] text-zp-fg-3">
+        You receive at least {fmt(minOut)} {outSymbol}; anything worse reverts.
+      </p>
+    </div>
+  );
+}
+
 function SwapButton({
   swap,
   inSymbol,
@@ -41,10 +80,10 @@ function SwapButton({
   outSymbol: string;
   quoteOk: boolean;
 }) {
-  let label = `Swap ${inSymbol} for ${outSymbol}`;
+  let label = `Swap ${inSymbol} for ${outSymbol}${swap.route === "uniswap" ? " via Uniswap" : ""}`;
   let disabled = false;
   if (!swap.available) [label, disabled] = ["Not open for web trading yet", true];
-  else if (swap.eligible === false) [label, disabled] = ["Your wallet needs a TRADER attestation", true];
+  else if (swap.needsAttestation && swap.eligible === false) [label, disabled] = ["Verify your wallet to trade on Zirplus", true];
   else if (!swap.amountIn || !quoteOk) [label, disabled] = ["Enter a valid amount", true];
   else if (swap.balance !== null && swap.balance < swap.amountIn) [label, disabled] = [`Not enough ${inSymbol}`, true];
   else if (swap.stage === "approving") [label, disabled] = [`Approve ${inSymbol} in your wallet…`, true];
@@ -105,7 +144,7 @@ function SwapTicket({ requested }: { requested: string | null }) {
   const market = markets.find((m) => m.symbol === symbol) ?? linked ?? markets[0];
   const amountIn = Number(amountRaw.replace(/,/g, ""));
   const quote = useMemo(() => (market ? quoteSwap(market, buyToken, amountIn, session) : null), [market, buyToken, amountIn, session]);
-  const swap = useOnchainSwap(market, buyToken, amountRaw, slippageBps);
+  const swap = useOnchainSwap(market, buyToken, amountRaw, slippageBps, session);
 
   if (venue.loading && !venue.data) return <SwapSkeleton />;
   if (!market || !quote) {
@@ -267,12 +306,8 @@ function SwapTicket({ requested }: { requested: string | null }) {
             </div>
           )}
 
-          {swap.available && swap.previewOut !== null && (
-            <p className="num mt-4 px-1 text-[13px] text-zp-fg-2">
-              On-chain quote: {fmtMoney(Number(formatUnits(swap.previewOut, swap.outDecimals)), "", outDigits)} {outSymbol} via the{" "}
-              {swap.previewVenue === "rfq" ? "RFQ maker" : "vault"} · you receive at least{" "}
-              {fmtMoney(Number(formatUnits((swap.previewOut * BigInt(10_000 - slippageBps)) / BigInt(10_000), swap.outDecimals)), "", outDigits)} {outSymbol}
-            </p>
+          {swap.available && swap.route && swap.previewOut !== null && (
+            <RoutePanel swap={swap} outSymbol={outSymbol} outDigits={outDigits} slippageBps={slippageBps} />
           )}
           {swap.available && swap.previewError && quote.ok && (
             <div className="mt-4">
@@ -317,6 +352,7 @@ function SwapTicket({ requested }: { requested: string | null }) {
                   : "Once your wallet is verified, you can be trading within minutes."}
               </span>
             </p>
+            {authenticated && swap.eligible === false && <SelfCertify onVerified={swap.refresh} />}
           </div>
         </section>
 

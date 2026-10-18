@@ -252,6 +252,13 @@ fee       = ${FEES.swapFeeBps} bps of the USDG side`}</Code>
                 <p>
                   Anything worse than your <Pill>minAmountOut</Pill> reverts, so the price you approve is the worst price you can get.
                 </p>
+                <p>
+                  <strong className="font-medium text-zp-fg">Off-hours routing.</strong> The web app quotes both the Zirplus router and
+                  Uniswap V3 for every trade. While the US market is closed, when vaults quote at the ×3 closed-session spread, it routes to
+                  Uniswap&apos;s Robinhood Chain pools, which trade around the clock and need no attestation. While the market is open it
+                  routes to the Zirplus vault. If the preferred route cannot fill the size, it falls back to the other, and the ticket shows
+                  both quotes before you sign.
+                </p>
               </Section>
 
               <Section id="halts" kicker="05 · Halts" title="When a market stops quoting">
@@ -301,6 +308,13 @@ fee       = ${FEES.swapFeeBps} bps of the USDG side`}</Code>
                   Trading, providing liquidity and making markets each need a role attestation on your wallet: <Pill>TRADER</Pill>,{" "}
                   <Pill>LP</Pill>, <Pill>MAKER</Pill> or <Pill>RELAYER</Pill>. An approved issuer writes it on-chain with only the role, a
                   jurisdiction class, an investor class and an expiry. No personal data goes on-chain.
+                </p>
+                <p>
+                  <strong className="font-medium text-zp-fg">Self-verification.</strong> On the swap page, a signed-in wallet without a
+                  role can pick its country, confirm each eligibility statement and sign the declaration. The server checks the signature,
+                  that the wallet belongs to your account, and that neither your declared country nor your network country is restricted,
+                  then writes a TRADER attestation for 180 days. This is self-certification, not identity verification; the signed
+                  declaration is kept as the record.
                 </p>
                 <p>You never need a role to withdraw from a vault. Your attestations are listed under Account in the app.</p>
               </Section>
