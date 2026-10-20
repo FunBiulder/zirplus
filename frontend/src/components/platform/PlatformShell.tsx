@@ -34,6 +34,7 @@ const NAV: NavItem[] = [
 
 const SESSION_NAME = { regular: "Open", extended: "Extended", closed: "Closed" } as const;
 const SESSION_DOT = { regular: "bg-zp-up", extended: "bg-zp-warn", closed: "bg-zp-rose" } as const;
+const TOKEN_ADDRESS = "0xfa797c5b928092cc1e79a4e72eb8e70653ed930b";
 
 function utcClock(now: number) {
   const d = new Date(now);
@@ -106,6 +107,16 @@ export function PlatformShell({ children }: { children: React.ReactNode }) {
               <Logo size={32} className="hidden sm:inline-flex" />
               <span className="hidden rounded-full border border-zp-line-strong px-2.5 py-1 font-mono text-[10.5px] uppercase tracking-[0.14em] text-zp-fg-3 md:inline">
                 app
+              </span>
+              <span
+                className="inline-flex h-9 items-center gap-2 rounded-full border border-zp-line-strong bg-zp-ink/40 px-3"
+                title={`$ZPLUS contract address: ${TOKEN_ADDRESS}`}
+                aria-label={`$ZPLUS token, contract address ${TOKEN_ADDRESS}`}
+              >
+                <span className="font-mono text-[12px] font-semibold text-zp-fg">$ZPLUS</span>
+                <span className="hidden font-mono text-[10px] text-zp-fg-3 sm:inline">
+                  {TOKEN_ADDRESS.slice(0, 6)}…{TOKEN_ADDRESS.slice(-4)}
+                </span>
               </span>
             </div>
 
